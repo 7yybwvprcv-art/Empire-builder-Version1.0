@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Empire Builder V1.0</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Arial;background:#0b1220;color:#f8fafc}
+button,input,select{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 13px;background:#2563eb;color:white}
+button.alt{background:#334155}.danger{background:#b91c1c}.good{background:#15803d}
+header{padding:16px 18px;background:#111827;position:sticky;top:0;z-index:5;border-bottom:1px solid #263244}
+header h1{margin:0 0 8px;font-size:22px}.stats{display:flex;gap:8px;flex-wrap:wrap}.pill{background:#1e293b;padding:6px 9px;border-radius:999px;font-size:13px}
+main{max-width:1050px;margin:auto;padding:14px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.card{background:#111827;border:1px solid #263244;border-radius:16px;padding:15px}.card h2{margin-top:0;font-size:18px}
+.big{font-size:26px;font-weight:800}.muted{color:#94a3b8}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button:disabled{opacity:.45;cursor:not-allowed}
+#log{height:190px;overflow:auto;background:#070d18;border-radius:10px;padding:10px;font-size:14px}
+.chat{height:170px;overflow:auto;background:#070d18;border-radius:10px;padding:10px}.msg{padding:5px 0;border-bottom:1px solid #172235}
+input,select{background:#0f172a;color:white;border:1px solid #334155;border-radius:9px;padding:10px}
+input{min-width:0}.wide{width:100%}
+.map{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.tile{min-height:70px;background:#172554;border-radius:9px;padding:8px;font-size:12px}.tile span{display:block;font-size:20px}
+.hidden{display:none}.notice{padding:10px;border-radius:10px;background:#172554;margin:8px 0}
+</style>
+</head>
+<body>
+<header>
+<h1>🏙️ Empire Builder V1.0</h1>
+<div class="stats">
+<span class="pill">💵 <b id="money">$5,000</b></span>
+<span class="pill">🏆 Rep <b id="rep">0</b></span>
+<span class="pill">📈 Empire <b id="level">1</b></span>
+<span class="pill">📅 Day <b id="day">1</b></span>
+<span class="pill">🌤️ <b id="weather">Sunny</b></span>
+<span class="pill">👥 <b id="online">Offline</b></span>
+</div>
+</header>
+
+<main>
+<div id="story" class="card">
+<h2>👨‍👩‍👧 The Beginning</h2>
+<p>Your parents are very rich, but you decide not to depend on their money. You want to build an empire of your own.</p>
+<p>Your parents offer you <b>$5,000</b> as starting capital.</p>
+<h3>Choose your path</h3>
+<div class="row">
+<button onclick="choosePath('smoothie')">🥤 Smoothie Maker</button>
+<button onclick="choosePath('supermarket')">🛒 Supermarket Owner</button>
+<button onclick="choosePath('job')">💼 Work for a Company</button>
+</div>
+</div>
+
+<div id="game" class="hidden">
+<div class="grid">
+<section class="card">
+<h2>🗺️ City</h2>
+<div class="map">
+<div class="tile" onclick="visit('home')"><span>🏠</span>Homes</div>
+<div class="tile" onclick="visit('smoothie')"><span>🥤</span>Smoothie Shop</div>
+<div class="tile" onclick="visit('market')"><span>🛒</span>Supermarket</div>
+<div class="tile" onclick="visit('company')"><span>🏢</span>Companies</div>
+<div class="tile" onclick="visit('hospital')"><span>🏥</span>Hospital</div>
+<div class="tile" onclick="visit('bank')"><span>🏦</span>Bank</div>
+<div class="tile" onclick="visit('garage')"><span>🚗</span>Cars</div>
+<div class="tile" onclick="visit('park')"><span>👥</span>NPC Park</div>
+</div>
+<p id="location" class="notice">You are at home.</p>
+</section>
+
+<section class="card">
+<h2>💼 Your Empire</h2>
+<p>Path: <b id="path">Not chosen</b></p>
+<p>Business: <b id="business">None</b></p>
+<p>Employees: <b id="employees">0</b></p>
+<p>House: <b id="house">None</b></p>
+<p>Car: <b id="car">None</b></p>
+<div class="row">
+<button onclick="work()">⚙️ Work</button>
+<button onclick="upgrade()">⬆️ Upgrade</button>
+<button class="good" onclick="collectIncome()">💰 Collect income</button>
+</div>
+</section>
+
+<section class="card">
+<h2>🏠 Houses & Offers</h2>
+<div id="houses"></div>
+</section>
+
+<section class="card">
+<h2>🚗 Cars & Transport</h2>
+<div id="cars"></div>
+</section>
+
+<section class="card">
+<h2>🏥 Life & Emergencies</h2>
+<p id="emergency">No emergency right now.</p>
+<div class="row">
+<button onclick="causeAccident()">🚗 Simulate accident</button>
+<button onclick="callHelp()">🆘 Call for help</button>
+<button onclick="hospital()">🏥 Go to hospital</button>
+</div>
+</section>
+
+<section class="card">
+<h2>🎯 Missions & 🏆 Achievements</h2>
+<div id="missions"></div>
+<div id="achievements" class="muted"></div>
+</section>
+
+<section class="card">
+<h2>📱 Phone / 💬 Team Chat</h2>
+<div class="row">
+<input id="server" class="wide" value="ws://localhost:8080" placeholder="WebSocket server">
+<input id="name" placeholder="Player name">
+<input id="room" placeholder="Room code">
+<button onclick="connect()">Connect 2-player</button>
+</div>
+<div id="players" class="notice">No team connected.</div>
+<div id="chat" class="chat"></div>
+<div class="row">
+<input id="chatText" class="wide" placeholder="Type to your teammate..." onkeydown="if(event.key==='Enter')sendChat()">
+<button onclick="sendChat()">Send</button>
+</div>
+</section>
+
+<section class="card">
+<h2>💾 Save / Continue / Reset</h2>
+<div class="row">
+<button onclick="saveGame()">Save</button>
+<button onclick="loadGame()">Continue</button>
+<button class="danger" onclick="resetGame()">Reset Game</button>
+</div>
+<p class="muted">Quitting does not delete your progress. Reset is a separate choice.</p>
+</section>
+
+<section class="card">
+<h2>📰 Random Events</h2>
+<div id="log"></div>
+</section>
+</div>
+</div>
+</main>
+
+<script>
+const KEY="empire_builder_v1_full";
+let state={
+ money:5000,rep:0,level:1,day:1,weather:"Sunny",path:null,business:null,
+ employees:0,house:null,car:null,upgrade:0,location:"Home",emergency:null,
+ missions:{business:false,house:false,car:false,help:false}, achievements:[]
+};
+let ws=null, syncing=false;
+
+const houses=[
+ {name:"Small Apartment",price:1200,rep:2},{name:"Family House",price:2500,rep:5},
+ {name:"Modern Villa",price:4500,rep:10},{name:"Luxury Mansion",price:9000,rep:20}
+];
+const cars=[
+ {name:"Used Car",price:900,rep:1},{name:"Family Car",price:1800,rep:3},
+ {name:"Sports Car",price:4500,rep:8}
+];
+
+function money(){document.getElementById("money").textContent="$"+Math.max(0,state.money).toLocaleString()}
+function log(x){let d=document.createElement("div");d.textContent="• "+x;let l=document.getElementById("log");l.prepend(d)}
+function render(){
+ money();document.getElementById("rep").textContent=state.rep;
+ document.getElementById("level").textContent=state.level;
+ document.getElementById("day").textContent=state.day;
+ document.getElementById("weather").textContent=state.weather;
+ document.getElementById("path").textContent=state.path||"Not chosen";
+ document.getElementById("business").textContent=state.business||"None";
+ document.getElementById("employees").textContent=state.employees;
+ document.getElementById("house").textContent=state.house||"None";
+ document.getElementById("car").textContent=state.car||"None";
+ document.getElementById("location").textContent="You are at "+state.location+".";
+ document.getElementById("emergency").textContent=state.emergency||"No emergency right now.";
+ renderHouses();renderCars();renderMissions();
+}
+function choosePath(p){
+ state.path=p;
+ if(p==="smoothie") state.business="Smoothie Shop";
+ if(p==="supermarket") state.business="Supermarket";
+ if(p==="job") state.business="Company Job";
+ document.getElementById("story").classList.add("hidden");document.getElementById("game").classList.remove("hidden");
+ log("You chose the "+(p==="smoothie"?"Smoothie Maker":p==="supermarket"?"Supermarket Owner":"Company career")+" path.");
+ render();broadcastState();
+}
+function visit(x){
+ const names={home:"Home",smoothie:"Smoothie Shop",market:"Supermarket",company:"Company District",hospital:"Hospital",bank:"Bank",garage:"Car Dealership",park:"NPC Park"};
+ state.location=names[x]||x;log("You visited "+state.location+".");
+ if(x==="bank") log("The bank helps you manage your empire's money.");
+ if(x==="park") log("NPCs are nearby. Some may choose to help during emergencies.");
+ render();broadcastState();
+}
+function work(){
+ let gain=state.path==="job"?300:state.business==="Smoothie Shop"?180:state.business==="Supermarket"?240:100;
+ gain+=state.upgrade*60+state.employees*25;
+ state.money+=gain;state.rep+=1;state.day++;
+ randomEvent();
+ log("You worked and earned $"+gain+".");
+ levelCheck();render();broadcastState();
+}
+function collectIncome(){
+ let gain=(state.business?120:0)+state.upgrade*50+state.employees*20;
+ state.money+=gain;state.rep+=1;log("Business income: +$"+gain+".");levelCheck();render();broadcastState()
+}
+function upgrade(){
+ const cost=500+state.upgrade*500;
+ if(state.money<cost){log("Not enough money for the next upgrade.");return}
+ state.money-=cost;state.upgrade++;state.rep+=3;log("Business upgraded to level "+state.upgrade+".");levelCheck();render();broadcastState()
+}
+function renderHouses(){
+ document.getElementById("houses").innerHTML=houses.map((h,i)=>`<div class="notice"><b>${h.name}</b> — $${h.price.toLocaleString()} <button onclick="buyHouse(${i})" ${state.house?"disabled":""}>Buy</button></div>`).join("");
+}
+function buyHouse(i){
+ let h=houses[i];if(state.house||state.money<h.price)return;
+ state.money-=h.price;state.house=h.name;state.rep+=h.rep;state.missions.house=true;log("Bought "+h.name+".");levelCheck();render();broadcastState()
+}
+function renderCars(){
+ document.getElementById("cars").innerHTML=cars.map((c,i)=>`<div class="notice"><b>${c.name}</b> — $${c.price.toLocaleString()} <button onclick="buyCar(${i})" ${state.car?"disabled":""}>Buy</button></div>`).join("");
+}
+function buyCar(i){
+ let c=cars[i];if(state.car||state.money<c.price)return;
+ state.money-=c.price;state.car=c.name;state.rep+=c.rep;state.missions.car=true;log("Bought "+c.name+".");levelCheck();render();broadcastState()
+}
+function causeAccident(){
+ state.emergency="🚨 Accident! You are injured. Nearby NPCs can choose whether to help.";
+ log("A car accident happened. Nearby characters may help.");
+ render();
+}
+function callHelp(){
+ if(!state.emergency){log("There is no emergency.");return}
+ const helped=Math.random()<0.75;
+ if(helped){state.emergency="🆘 Help is on the way.";state.missions.help=true;state.rep+=2;log("An NPC chose to help and called emergency services.");}
+ else{state.emergency="⚠️ Nobody helped immediately. You call again.";log("The nearby NPCs chose not to help.");}
+ render();broadcastState()
+}
+function hospital(){
+ if(!state.emergency){log("You do not need the hospital.");return}
+ state.emergency="🏥 Doctors and nurses treated you. You are safe.";
+ state.money=Math.max(0,state.money-150);state.rep+=1;log("Hospital treatment cost $150. Doctors and nurses treated you.");render();broadcastState()
+}
+function renderMissions(){
+ let m=[
+ ["Start a business",!!state.business],["Buy a house",state.missions.house],
+ ["Buy a car",state.missions.car],["Survive an emergency",state.missions.help],
+ ["Reach $10,000",state.money>=10000]
+ ];
+ document.getElementById("missions").innerHTML=m.map(x=>`<div>${x[1]?"✅":"⬜"} ${x[0]}</div>`).join("");
+ let a=[];
+ if(state.money>=10000)a.push("💰 First $10K");
+ if(state.house)a.push("🏠 Property Owner");
+ if(state.car)a.push("🚗 Driver");
+ if(state.rep>=25)a.push("⭐ Rising Empire");
+ document.getElementById("achievements").textContent="Achievements: "+(a.length?a.join(" • "):"None yet");
+}
+function levelCheck(){
+ let lvl=1+Math.floor(state.rep/10);if(state.money>=10000)lvl=Math.max(lvl,3);
+ if(lvl>state.level)log("🎉 Empire level increased to "+lvl+"!");state.level=lvl;
+}
+function randomEvent(){
+ const events=[
+ "A local customer recommends your business.",
+ "A supplier offers a small discount.",
+ "A rainy day reduces foot traffic.",
+ "A new customer visits your business.",
+ "A nearby shop offers a partnership opportunity."
+ ];
+ const e=events[Math.floor(Math.random()*events.length)];
+ log("📰 "+e);
+ if(Math.random()<0.35){state.rep++;log("Your reputation increased.");}
+ state.weather=["Sunny","Cloudy","Rainy","Windy"][Math.floor(Math.random()*4)];
+}
+function saveGame(){localStorage.setItem(KEY,JSON.stringify(state));log("Game saved.");}
+function loadGame(){let s=localStorage.getItem(KEY);if(!s){log("No saved game found.");return}state=JSON.parse(s);document.getElementById("story").classList.toggle("hidden",!!state.path);document.getElementById("game").classList.toggle("hidden",!state.path);render();log("Saved game loaded.");}
+function resetGame(){if(!confirm("Reset the game? This will erase your local saved progress."))return;localStorage.removeItem(KEY);location.reload()}
+
+function addChat(t){let d=document.createElement("div");d.className="msg";d.textContent=t;let c=document.getElementById("chat");c.appendChild(d);c.scrollTop=c.scrollHeight}
+function connect(){
+ if(ws)ws.close();
+ let url=document.getElementById("server").value.trim(),name=document.getElementById("name").value.trim()||"Player",room=document.getElementById("room").value.trim().toUpperCase();
+ if(!room){alert("Enter a room code.");return}
+ ws=new WebSocket(url);
+ ws.onopen=()=>{document.getElementById("online").textContent="Connected";ws.send(JSON.stringify({type:"join",name,room}));broadcastState()};
+ ws.onclose=()=>document.getElementById("online").textContent="Offline";
+ ws.onerror=()=>document.getElementById("online").textContent="Error";
+ ws.onmessage=e=>{
+   let m=JSON.parse(e.data);
+   if(m.type==="system")addChat("🔔 "+m.message);
+   if(m.type==="chat")addChat("💬 "+m.name+": "+m.text);
+   if(m.type==="players")document.getElementById("players").textContent="Team: "+m.players.join(", ");
+   if(m.type==="game_state" && !syncing){state=m.state;document.getElementById("story").classList.toggle("hidden",!!state.path);document.getElementById("game").classList.toggle("hidden",!state.path);render();log("🤝 Teammate updated the shared game.");}
+ }
+}
+function sendChat(){
+ if(!ws||ws.readyState!==1){alert("Connect first.");return}
+ let text=document.getElementById("chatText").value.trim();if(!text)return;
+ ws.send(JSON.stringify({type:"chat",text}));document.getElementById("chatText").value="";
+}
+function broadcastState(){
+ if(!ws||ws.readyState!==1||syncing)return;
+ ws.send(JSON.stringify({type:"game_state",state}));
+}
+loadGame();render();
+</script>
+</body>
+</html>
